@@ -1,0 +1,553 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>新潟経済ポジショニング分析</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=Space+Grotesk:wght@400;600;700&display=swap">
+
+<style>
+/* ── Layout: full-screen slide deck, horizontal navigation ── */
+:root {
+  --bg:        #0f1117;
+  --bg-card:   #191d28;
+  --bg-inset:  #131720;
+  --border:    rgba(255,255,255,0.08);
+  --fg:        #e8eaf0;
+  --fg-muted:  #7a8099;
+  --fg-dim:    #4a5068;
+  --accent:    #4f9cf9;         /* 新潟ブルー */
+  --accent2:   #e85c5c;         /* 警告レッド */
+  --accent3:   #34c88a;         /* 優位グリーン */
+  --accent4:   #f5a623;         /* 注意オレンジ */
+  --slide-w:   900px;
+  color-scheme: dark;
+}
+/* single-theme dark — data viz reads better on dark */
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; background: var(--bg); color: var(--fg);
+  font-family: 'Noto Sans JP', sans-serif; font-size: 15px; }
+
+/* ── Deck wrapper ── */
+#deck { width: 100%; height: 100%; display: flex; flex-direction: column; }
+
+/* ── Top nav ── */
+#nav {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px max(16px, env(safe-area-inset-left,0px));
+  background: var(--bg-inset);
+  border-bottom: 1px solid var(--border);
+  gap: 12px; flex-shrink: 0;
+}
+#nav h1 { font-family: 'Space Grotesk', sans-serif; font-size: 13px;
+  font-weight: 600; color: var(--fg-muted); letter-spacing: .05em;
+  text-transform: uppercase; white-space: nowrap; overflow: hidden;
+  text-overflow: ellipsis; flex: 1; min-width: 0; }
+.dots { display: flex; gap: 6px; flex-shrink: 0; }
+.dot { width: 8px; height: 8px; border-radius: 50%;
+  background: var(--fg-dim); cursor: pointer;
+  transition: background .2s, transform .2s; }
+.dot.active { background: var(--accent); transform: scale(1.3); }
+.nav-btn { background: none; border: 1px solid var(--border); color: var(--fg-muted);
+  padding: 4px 10px; border-radius: 6px; cursor: pointer; font-size: 13px;
+  transition: border-color .2s, color .2s; flex-shrink: 0; }
+.nav-btn:hover { border-color: var(--accent); color: var(--accent); }
+.nav-btn:disabled { opacity: .3; cursor: default; }
+
+/* ── Slide viewport ── */
+#viewport { flex: 1; overflow: hidden; position: relative; min-height: 0; }
+.slide {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  padding: 20px max(16px, env(safe-area-inset-left,0px));
+  opacity: 0; pointer-events: none;
+  transform: translateX(40px);
+  transition: opacity .35s ease, transform .35s ease;
+}
+.slide.active { opacity: 1; pointer-events: auto; transform: none; }
+.slide.prev   { opacity: 0; transform: translateX(-40px); }
+
+.slide-inner {
+  width: 100%; max-width: var(--slide-w);
+  display: flex; flex-direction: column; gap: 16px;
+}
+
+/* ── Typography ── */
+.slide-label {
+  font-size: 11px; font-weight: 700; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--accent); font-family: 'Space Grotesk', sans-serif;
+}
+.slide-title {
+  font-size: clamp(22px, 4vw, 34px); font-weight: 900; line-height: 1.2;
+  text-wrap: balance; color: var(--fg); font-family: 'Noto Sans JP', sans-serif;
+}
+.slide-sub {
+  font-size: 13px; color: var(--fg-muted); line-height: 1.6; max-width: 640px;
+}
+
+/* ── Cards / Grids ── */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.grid-3 { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; }
+@media (max-width: 600px) {
+  .grid-2, .grid-3 { grid-template-columns: 1fr; }
+}
+.card {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 10px; padding: 16px 18px;
+}
+.card-sm { padding: 12px 14px; border-radius: 8px; }
+
+/* ── Stat tiles ── */
+.stat-label { font-size: 11px; color: var(--fg-muted); letter-spacing: .05em;
+  text-transform: uppercase; margin-bottom: 4px; }
+.stat-value { font-family: 'Space Grotesk', sans-serif; font-size: clamp(24px,4vw,38px);
+  font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+.stat-note  { font-size: 11px; color: var(--fg-muted); margin-top: 4px; }
+.good  { color: var(--accent3); }
+.bad   { color: var(--accent2); }
+.warn  { color: var(--accent4); }
+.blue  { color: var(--accent); }
+
+/* ── Bar chart ── */
+.bar-wrap { display: flex; flex-direction: column; gap: 7px; }
+.bar-row  { display: flex; align-items: center; gap: 8px; }
+.bar-label { width: 60px; font-size: 11px; color: var(--fg-muted);
+  text-align: right; flex-shrink: 0; }
+.bar-track { flex: 1; height: 20px; background: var(--bg-inset);
+  border-radius: 4px; overflow: hidden; position: relative; min-width: 0; }
+.bar-fill  { height: 100%; border-radius: 4px;
+  display: flex; align-items: center; padding-left: 8px;
+  font-size: 11px; font-weight: 600; white-space: nowrap;
+  transition: width .6s ease; }
+.bar-niigata { background: linear-gradient(90deg, #c0392b, #e85c5c); }
+.bar-tokyo   { background: linear-gradient(90deg, #2471a3, #4f9cf9); }
+.bar-avg     { background: linear-gradient(90deg, #34c88a99, #34c88a); }
+.bar-other   { background: linear-gradient(90deg, #4a506888, #6c7290); }
+.ref-line { position: absolute; left: var(--ref); top: 0; bottom: 0;
+  width: 2px; background: var(--accent3); opacity: .6; }
+.ref-label { position: absolute; top: 2px; font-size: 10px; color: var(--accent3);
+  left: calc(var(--ref) + 4px); }
+
+/* ── Z-score chart ── */
+.z-wrap { display: flex; flex-direction: column; gap: 5px; }
+.z-row  { display: grid; grid-template-columns: 130px 1fr 42px; gap: 6px; align-items: center; }
+@media (max-width: 500px) {
+  .z-row { grid-template-columns: 90px 1fr 36px; }
+}
+.z-name { font-size: 11px; color: var(--fg-muted); text-align: right; }
+.z-track{ background: var(--bg-inset); border-radius: 3px; height: 16px;
+  position: relative; overflow: hidden; }
+.z-bar  { position: absolute; top: 0; bottom: 0; border-radius: 3px; }
+.z-center { position: absolute; left: 50%; top: 0; bottom: 0;
+  width: 1px; background: var(--border); }
+.z-val  { font-size: 11px; font-weight: 600; font-variant-numeric: tabular-nums;
+  font-family: 'Space Grotesk', sans-serif; }
+
+/* ── Cluster map (SVG) ── */
+.cluster-box { background: var(--bg-inset); border-radius: 10px; overflow: hidden; }
+
+/* ── Strategy matrix ── */
+.matrix-row { display: grid; grid-template-columns: 100px 1fr 1fr; gap: 1px;
+  background: var(--border); border-radius: 0; }
+.matrix-row:first-child { border-radius: 8px 8px 0 0; }
+.matrix-row:last-child  { border-radius: 0 0 8px 8px; }
+.matrix-cell { background: var(--bg-card); padding: 10px 12px;
+  font-size: 12px; line-height: 1.4; }
+.matrix-head { background: var(--bg-inset); font-size: 11px;
+  font-weight: 700; letter-spacing: .07em; text-transform: uppercase;
+  color: var(--fg-muted); }
+.matrix-label { font-size: 11px; font-weight: 700; color: var(--fg); }
+
+/* ── Insight pill ── */
+.insight-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.pill { font-size: 11px; padding: 4px 10px; border-radius: 20px;
+  font-weight: 600; white-space: nowrap; }
+.pill-red  { background: rgba(232,92,92,.15); color: var(--accent2); border: 1px solid rgba(232,92,92,.3); }
+.pill-green{ background: rgba(52,200,138,.15); color: var(--accent3); border: 1px solid rgba(52,200,138,.3); }
+.pill-blue { background: rgba(79,156,249,.15); color: var(--accent);  border: 1px solid rgba(79,156,249,.3); }
+.pill-warn { background: rgba(245,166,35,.15); color: var(--accent4); border: 1px solid rgba(245,166,35,.3); }
+
+/* ── Road map ── */
+.road-wrap { display: flex; gap: 0; }
+.road-step { flex: 1; border: 1px solid var(--border); border-right-width: 0;
+  padding: 14px 14px; background: var(--bg-card); }
+.road-step:first-child { border-radius: 8px 0 0 8px; }
+.road-step:last-child  { border-radius: 0 8px 8px 0; border-right-width: 1px; }
+.road-step h4 { font-size: 11px; color: var(--fg-muted); letter-spacing: .07em;
+  text-transform: uppercase; margin-bottom: 6px; font-family: 'Space Grotesk', sans-serif; }
+.road-step ul { font-size: 12px; line-height: 1.6; padding-left: 14px; color: var(--fg); }
+@media (max-width: 600px) {
+  .road-wrap { flex-direction: column; gap: 8px; }
+  .road-step { border-radius: 8px !important; border-right-width: 1px !important; }
+}
+
+/* ── Bottom bar ── */
+#bottom {
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 8px max(16px, env(safe-area-inset-left,0px));
+  flex-shrink: 0;
+}
+.prog-bar { height: 3px; border-radius: 2px; background: var(--border);
+  flex: 1; max-width: 300px; overflow: hidden; }
+.prog-fill { height: 100%; background: var(--accent); border-radius: 2px;
+  transition: width .35s ease; }
+.prog-label { font-size: 11px; color: var(--fg-dim);
+  font-variant-numeric: tabular-nums; white-space: nowrap; }
+</style>
+
+<div id="deck">
+  <div id="nav">
+    <h1>新潟県 経済ポジショニング分析 2025</h1>
+    <div class="dots">
+      <div class="dot active" data-i="0" onclick="goTo(0)"></div>
+      <div class="dot" data-i="1" onclick="goTo(1)"></div>
+      <div class="dot" data-i="2" onclick="goTo(2)"></div>
+    </div>
+    <button class="nav-btn" id="prevBtn" onclick="prev()" disabled>‹</button>
+    <button class="nav-btn" id="nextBtn" onclick="next()">›</button>
+  </div>
+
+  <div id="viewport">
+
+    <!-- ══════════════════════════════════
+         SLIDE 1: クラスタリング + LOF
+         ══════════════════════════════════ -->
+    <div class="slide active" id="s0">
+      <div class="slide-inner">
+        <div>
+          <div class="slide-label">Slide 1 of 3 · UMAP + HDBSCAN + LOF</div>
+          <h2 class="slide-title">新潟は「どのクラスターにも属さない県」</h2>
+          <p class="slide-sub">47都道府県を24指標でクラスタリング。新潟はHDBSCAN外れ値(ノイズ)として分類され、東北型でも北陸型でもない独自構造を持つ。</p>
+        </div>
+
+        <div class="insight-row">
+          <span class="pill pill-red">🔴 外れ値/ノイズ (cluster = -1)</span>
+          <span class="pill pill-blue">LOFスコア 1.023 — 全国30位</span>
+          <span class="pill pill-warn">東北クラスターA の境界付近</span>
+        </div>
+
+        <div class="grid-2">
+          <!-- LOF top bar -->
+          <div class="card card-sm">
+            <div class="stat-label">LOF外れ値スコア（独自性）</div>
+            <div class="bar-wrap" style="margin-top:8px">
+              <div class="bar-row">
+                <div class="bar-label">沖縄</div>
+                <div class="bar-track">
+                  <div class="bar-fill bar-tokyo" style="width:95%">2.39</div>
+                </div>
+              </div>
+              <div class="bar-row">
+                <div class="bar-label">東京</div>
+                <div class="bar-track">
+                  <div class="bar-fill bar-tokyo" style="width:62%">1.56</div>
+                </div>
+              </div>
+              <div class="bar-row">
+                <div class="bar-label">大阪</div>
+                <div class="bar-track">
+                  <div class="bar-fill bar-other" style="width:51%">1.29</div>
+                </div>
+              </div>
+              <div class="bar-row">
+                <div class="bar-label" style="color:var(--accent2)">★新潟</div>
+                <div class="bar-track">
+                  <div class="bar-fill bar-niigata" style="width:40%">1.02</div>
+                </div>
+              </div>
+              <div class="bar-row">
+                <div class="bar-label">富山</div>
+                <div class="bar-track">
+                  <div class="bar-fill bar-other" style="width:42%">1.07</div>
+                </div>
+              </div>
+            </div>
+            <div class="stat-note" style="margin-top:8px">高いほど周囲と構造的に異質</div>
+          </div>
+
+          <!-- 類似・対極 -->
+          <div class="card card-sm" style="display:flex;flex-direction:column;gap:10px">
+            <div>
+              <div class="stat-label" style="color:var(--accent3)">▲ 最近傍（類似構造）</div>
+              <div style="font-size:12px;line-height:1.9;margin-top:4px">
+                <span style="color:var(--accent3);font-weight:700">1.</span> 富山県 <span class="fg-muted">距離 3.46</span><br>
+                <span style="color:var(--accent3);font-weight:700">2.</span> 福島県 <span class="fg-muted">距離 3.62</span><br>
+                <span style="color:var(--accent3);font-weight:700">3.</span> 山形県 <span class="fg-muted">距離 3.68</span>
+              </div>
+            </div>
+            <div style="border-top:1px solid var(--border);padding-top:10px">
+              <div class="stat-label" style="color:var(--accent2)">▼ 対極（補完構造）</div>
+              <div style="font-size:12px;line-height:1.9;margin-top:4px">
+                <span style="color:var(--accent2);font-weight:700">1.</span> 東京都 <span style="color:var(--fg-muted)">距離 14.81</span><br>
+                <span style="color:var(--accent2);font-weight:700">2.</span> 神奈川 <span style="color:var(--fg-muted)">距離 10.60</span><br>
+                <span style="color:var(--accent2);font-weight:700">3.</span> 京都府 <span style="color:var(--fg-muted)">距離 10.59</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Insight -->
+        <div class="card card-sm" style="border-left:3px solid var(--accent);padding-left:16px">
+          <div style="font-size:12px;line-height:1.7">
+            <strong style="color:var(--accent)">戦略的示唆:</strong>
+            富山モデル（出生率1.46・製造業×観光）の移植が最優先。東京との「距離14.81」は補完関係を意味し、リモートワーク受け皿としての差別化ポジションを示す。
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════
+         SLIDE 2: Zスコア + 賃金ギャップ
+         ══════════════════════════════════ -->
+    <div class="slide" id="s1">
+      <div class="slide-inner">
+        <div>
+          <div class="slide-label">Slide 2 of 3 · Zスコア分析 + 賃金ギャップ</div>
+          <h2 class="slide-title">「仕事はある・選ばれない」構造的矛盾</h2>
+          <p class="slide-sub">|Z|&gt;1.0 の指標が示す新潟の本質課題。求人倍率+1.46σ（全国トップ級）と転入率−1.64σ（ワースト級）が同時に成立する逆説。</p>
+        </div>
+
+        <div class="grid-2">
+          <!-- Z-score chart -->
+          <div class="card card-sm">
+            <div class="stat-label">|Z| &gt; 1.0 の指標（戦略的着目点）</div>
+            <div class="z-wrap" style="margin-top:8px">
+              <!-- center at 50% = z=0, range -2 to +2 so 1σ = 25% -->
+              <div class="z-row">
+                <div class="z-name">転 出 率</div>
+                <div class="z-track">
+                  <div class="z-center"></div>
+                  <div class="z-bar" style="right:50%;width:44.5%;background:rgba(232,92,92,.8);left:auto"></div>
+                </div>
+                <div class="z-val bad">−1.78</div>
+              </div>
+              <div class="z-row">
+                <div class="z-name">転 入 率</div>
+                <div class="z-track">
+                  <div class="z-center"></div>
+                  <div class="z-bar" style="right:50%;width:41%;background:rgba(79,156,249,.8);left:auto"></div>
+                </div>
+                <div class="z-val" style="color:var(--accent)">−1.64</div>
+              </div>
+              <div class="z-row">
+                <div class="z-name">求 人 倍 率</div>
+                <div class="z-track">
+                  <div class="z-center"></div>
+                  <div class="z-bar" style="left:50%;width:36.5%;background:rgba(52,200,138,.8)"></div>
+                </div>
+                <div class="z-val good">+1.46</div>
+              </div>
+              <div class="z-row">
+                <div class="z-name">ごみ排出量</div>
+                <div class="z-track">
+                  <div class="z-center"></div>
+                  <div class="z-bar" style="left:50%;width:36%;background:rgba(79,156,249,.5)"></div>
+                </div>
+                <div class="z-val" style="color:var(--fg-muted)">+1.44</div>
+              </div>
+              <div class="z-row">
+                <div class="z-name">住宅着工率</div>
+                <div class="z-track">
+                  <div class="z-center"></div>
+                  <div class="z-bar" style="right:50%;width:32%;background:rgba(200,200,200,.4);left:auto"></div>
+                </div>
+                <div class="z-val" style="color:var(--fg-muted)">−1.29</div>
+              </div>
+            </div>
+            <div class="stat-note" style="margin-top:8px">
+              <span style="color:var(--accent2)">■</span> 転出方向の弱点
+              <span style="color:var(--accent);margin-left:8px">■</span> 転入方向の弱点
+              <span style="color:var(--accent3);margin-left:8px">■</span> 強み
+            </div>
+          </div>
+
+          <!-- 賃金ギャップ -->
+          <div class="card card-sm" style="display:flex;flex-direction:column;gap:12px">
+            <div class="stat-label">所定内給与額 — 全国比（令和7年）</div>
+            <div class="bar-wrap">
+              <div class="bar-row">
+                <div class="bar-label">東 京</div>
+                <div class="bar-track" style="position:relative">
+                  <div class="ref-line" style="--ref:81.3%"></div>
+                  <div class="bar-fill bar-tokyo" style="width:98%">122.8%</div>
+                </div>
+              </div>
+              <div class="bar-row">
+                <div class="bar-label">全 国</div>
+                <div class="bar-track">
+                  <div class="bar-fill bar-avg" style="width:81.3%">100.0%</div>
+                </div>
+              </div>
+              <div class="bar-row">
+                <div class="bar-label">長 野</div>
+                <div class="bar-track">
+                  <div class="bar-fill bar-other" style="width:73.8%">90.7%</div>
+                </div>
+              </div>
+              <div class="bar-row">
+                <div class="bar-label">富 山</div>
+                <div class="bar-track">
+                  <div class="bar-fill bar-other" style="width:72.8%">89.5%</div>
+                </div>
+              </div>
+              <div class="bar-row">
+                <div class="bar-label" style="color:var(--accent2)">★新 潟</div>
+                <div class="bar-track">
+                  <div class="bar-fill bar-niigata" style="width:69.7%">85.7%</div>
+                </div>
+              </div>
+              <div class="bar-row">
+                <div class="bar-label">福 島</div>
+                <div class="bar-track">
+                  <div class="bar-fill bar-other" style="width:70.1%">86.2%</div>
+                </div>
+              </div>
+              <div class="bar-row">
+                <div class="bar-label">山 形</div>
+                <div class="bar-track">
+                  <div class="bar-fill bar-other" style="width:65%">79.9%</div>
+                </div>
+              </div>
+            </div>
+            <div class="stat-note">
+              新潟の推定年収 <strong style="color:var(--accent2)">約280万円</strong> vs 東京 <strong style="color:var(--accent)">約401万円</strong>（月額差▲10.3万円）
+            </div>
+          </div>
+        </div>
+
+        <!-- 3 key stats -->
+        <div class="grid-3">
+          <div class="card card-sm" style="text-align:center">
+            <div class="stat-label">東京との賃金差</div>
+            <div class="stat-value bad">▲10.3<span style="font-size:16px">万</span></div>
+            <div class="stat-note">月あたり（所定内給与）</div>
+          </div>
+          <div class="card card-sm" style="text-align:center">
+            <div class="stat-label">求人倍率（全国比）</div>
+            <div class="stat-value good">+1.46<span style="font-size:16px">σ</span></div>
+            <div class="stat-note">仕事はある（全国上位）</div>
+          </div>
+          <div class="card card-sm" style="text-align:center">
+            <div class="stat-label">転出率（全国比）</div>
+            <div class="stat-value bad">−1.78<span style="font-size:16px">σ</span></div>
+            <div class="stat-note">人材流出（全国ワースト級）</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════
+         SLIDE 3: 戦略マトリクス + ロードマップ
+         ══════════════════════════════════ -->
+    <div class="slide" id="s2">
+      <div class="slide-inner">
+        <div>
+          <div class="slide-label">Slide 3 of 3 · FDI戦略ターゲット + Phase 2 拡張</div>
+          <h2 class="slide-title">次のアクション：FDI誘致 × データ拡張</h2>
+          <p class="slide-sub">定量分析から導かれる戦略仮説と、Phase 2で検証すべきデータ拡張ロードマップ。</p>
+        </div>
+
+        <!-- LLM generated strategy -->  
+        <div class="grid-2" style="gap:10px">
+          <!-- 5-year roadmap -->
+          <div class="card card-sm">
+            <div class="stat-label" style="color:var(--accent);margin-bottom:8px">▶ 5年施策（〜2030年）即効策</div>
+            <div style="font-size:12px;line-height:1.75">
+              <div style="margin-bottom:8px"><strong style="color:var(--accent3)">① 富山モデル移植</strong><br>
+              <span style="color:var(--fg-muted)">根拠: 距離3.46（最近傍）+ 出生率差▲0.21</span><br>
+              KPI: 合計特殊出生率 1.21→<strong>1.35</strong>（+0.14）</div>
+              <div style="margin-bottom:8px"><strong style="color:var(--accent3)">② 賃金底上げ補助金</strong><br>
+              <span style="color:var(--fg-muted)">根拠: 全国比85.7%・転入率−1.64σ</span><br>
+              KPI: 転入者数 +<strong>5,000人/年</strong>（現状比+20%）</div>
+              <div><strong style="color:var(--accent3)">③ 求人シグナル国際発信</strong><br>
+              <span style="color:var(--fg-muted)">根拠: 求人倍率+1.46σ × FDI低水準</span><br>
+              KPI: 外資系企業立地数 +<strong>10社</strong>（5年累計）</div>
+            </div>
+          </div>
+          <!-- 10-year roadmap -->
+          <div class="card card-sm">
+            <div class="stat-label" style="color:var(--accent4);margin-bottom:8px">▶ 10年投資（〜2035年）構造転換</div>
+            <div style="font-size:12px;line-height:1.75">
+              <div style="margin-bottom:8px"><strong style="color:var(--accent4)">① Mittelstand型産業クラスター</strong><br>
+              <span style="color:var(--fg-muted)">根拠: 燕三条×ドイツ型精密製造構造</span><br>
+              KPI: 製造業輸出額 <strong>1.5倍</strong>（〜2035年）</div>
+              <div><strong style="color:var(--accent4)">② 東京補完リモート経済圏</strong><br>
+              <span style="color:var(--fg-muted)">根拠: 東京距離14.81＝最大補完関係</span><br>
+              KPI: リモートワーカー移住者 累計<strong>3,000人</strong></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Nudge + KPI -->
+        <div class="grid-2" style="gap:10px">
+          <div class="card card-sm">
+            <div class="stat-label" style="color:var(--accent2);margin-bottom:6px">🧠 ナッジ設計（行動経済学）</div>
+            <div style="font-size:12px;line-height:1.75">
+              <strong>① デフォルト変更</strong> — 求人票に「新潟勤務＋リモート可」を標準表記化。選択コストをゼロに。<br>
+              <strong>② 社会的証明</strong> — 移住者の「月収+生活費」可処分所得を可視化。東京比で「手取りが増える」事実を先行提示。<br>
+              <strong>③ 損失回避フレーム</strong> — 「今から来れば初年度家賃0円」ではなく「今来ないと枠が埋まる」限定フレームで転入促進。
+            </div>
+          </div>
+          <div class="card card-sm">
+            <div class="stat-label" style="color:var(--accent3);margin-bottom:6px">📊 5年KPI（現状→目標）</div>
+            <div style="font-size:11px;line-height:1.9">
+              <div style="display:grid;grid-template-columns:1fr auto auto;gap:2px 10px">
+                <span style="color:var(--fg-muted)">指標</span><span style="color:var(--fg-muted)">現在</span><span style="color:var(--fg-muted)">目標</span>
+                <span>転入率</span><span class="bad">−1.64σ</span><span class="good">−0.8σ</span>
+                <span>賃金全国比</span><span class="bad">85.7%</span><span class="good">90%</span>
+                <span>出生率</span><span class="warn">1.21</span><span class="good">1.35</span>
+                <span>外資立地数</span><span class="warn">基準値</span><span class="good">+10社</span>
+                <span>住宅着工率</span><span class="bad">−1.29σ</span><span class="good">−0.5σ</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="insight-row">
+          <span class="pill pill-blue">🤖 Phase 2C LLM生成戦略（claude-opus-4-5）</span>
+          <span class="pill pill-red">構造定義: 「求人過剰×人口流出」の逆説県</span>
+          <span class="pill pill-green">東京補完ポジションで差別化</span>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /viewport -->
+
+  <div id="bottom">
+    <div class="prog-bar"><div class="prog-fill" id="progFill"></div></div>
+    <div class="prog-label" id="progLabel">1 / 3</div>
+  </div>
+</div>
+
+<script>
+let cur = 0;
+const total = 3;
+
+function goTo(n) {
+  const slides = document.querySelectorAll('.slide');
+  slides[cur].classList.remove('active');
+  if (n < cur) slides[cur].classList.add('prev');
+  setTimeout(() => slides[cur].classList.remove('prev'), 400);
+  cur = n;
+  slides[cur].classList.add('active');
+  update();
+}
+function next() { if (cur < total-1) goTo(cur+1, 1); }
+function prev() { if (cur > 0)       goTo(cur-1, -1); }
+
+function update() {
+  document.getElementById('prevBtn').disabled = cur === 0;
+  document.getElementById('nextBtn').disabled = cur === total-1;
+  document.querySelectorAll('.dot').forEach((d,i) => d.classList.toggle('active', i===cur));
+  document.getElementById('progFill').style.width = ((cur+1)/total*100) + '%';
+  document.getElementById('progLabel').textContent = `${cur+1} / ${total}`;
+}
+
+// Keyboard nav
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight' || e.key === 'ArrowDown') next();
+  if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')   prev();
+});
+
+update();
+</script>
+
+</body></html>
